@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Map Demo Page</title>
+    <meta charset="utf-8" />
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet"
+     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+    />
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #navbar {
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            background: #1a1a1a;       
+            border-bottom: 3px solid #6082B6;;
+            box-sizing: border-box;
+        }
+
+        .navbar-title {
+            color: #f59e0b;
+            font-weight: 600;
+            font-size: 18px;
+            color: white;
+            text-decoration: none;
+            cursor: default;
+        }
+
+        .navbar-text {
+            color: white;
+        }
+
+        #userDropdownBtn {
+            color: white;
+            font-size: 15px;
+        }
+
+        #userDropdownBtn.dropdown-toggle::after {
+            margin-left: 10px;
+        }
+
+        .dropdown-menu {
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.18);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        #container {
+            position: relative;
+            height: calc(100vh - 54px);
+            width: 100vw;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        #infobar {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            width: 360px;
+            max-height: calc(100% - 36px);
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+            padding: 0;
+            box-sizing: border-box;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #infobar-header {
+            padding: 24px 14px 0 12px;
+        }
+
+        #infobar-content {
+            max-height: inherit;
+            overflow-y: auto;
+            padding: 12px 14px;
+        }
+
+        #infobar-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #infobar-content::-webkit-scrollbar-track {
+            background: transparent;
+            margin: 8px;
+        }
+
+        #infobar-content::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.4);
+            border-radius: 8px;
+        }
+
+        #infobar-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(120, 120, 120, 0.6);
+        }
+
+        @media (max-width: 600px) {
+            #infobar {
+                left: 10px;
+                right: 10px;
+                width: auto;
+                top: 16px;
+                max-height: calc(100% - 36px);
+                border-radius: 12px;
+            }
+        }
+
+        #incidents {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            
+        }
+
+        .incident-item {
+            background: #ffffff;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: background 0.2s, tranform 0.1s;
+        }
+
+        .incident-item:hover {
+            background: #f0f7ff;
+            transform: translateX(4px);
+        }
+
+        .incident-item:active {
+            background: #dbeaff;
+        }
+
+        .incident-type {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .incident-message {
+            font-size: 15px;
+        }
+    
+        #infobar h3 {
+            padding-left: 10px;
+        }
+
+    
+        #back-to-listview {
+            align-self: flex-start;
+            border: none;
+            background: transparent;
+            color: #2563eb;
+            cursor: pointer;
+            padding-left: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #incidents-detail-view {
+            padding-left: 12px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #navbarLoginBtn {
+            border: 1px solid white;
+            color: #7DF9FF;
+        }
+
+        .place-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .place-row > div {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .place-row input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+
+        .star-btn {
+            border: none;
+            background: transparent;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            color: #cbd5e1;
+            padding: 2px 4px;
+            flex-shrink: 0;
+        }
+
+        .star-btn:hover {
+            color: #f59e0b;
+            transform: scale(1.08);
+        }
+
+        .star-btn.active {
+            color: #f59e0b;
+        }
+
+        .savePlacePanel {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        .savePlacePanel input {
+            width: 100%;
+            padding: 8px 10px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        .savePlaceTitle {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .savePlaceActions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .savePlaceInlineMsg {
+            margin: 8px 0;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .savePlaceInlineMsg.success {
+            background: #ecfdf5;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .savePlaceInlineMsg.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Fix the settings panel layout */
+        .route-settings-panel {
+            border: 1px solid #cbd5e1 !important; /* Lighter, cleaner border */
+            background-color: #f8fafc !important;
+            padding: 12px !important;
+        }
+
+        /* Ensure the window row doesn't wrap awkwardly */
+        .window-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Force time inputs to be compact */
+        .alert-time-input {
+            padding: 2px 5px !important;
+            font-size: 13px !important;
+            width: 105px !important; /* Specifically sized for '00:00 AM' */
+            height: auto !important;
+        }
+
+        /* Style the labels for better readability */
+        .settings-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            margin: 0;
+        }
+
+
+    </style>
+</head>
+<body>
+    <!-- Navigation bar -->
+    <nav class="navbar navbar-expand-lg navbar-light" id="navbar">
+        <div class="container-fluid">
+            <a class="navbar-title" href="#">Forecasting Analytics for Singapore Traffic</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+
+                </ul>
+                <div class="navbar-text d-flex align-items-center gap-3">
+    
+                    <div class="dropdown" id="alertsDropdownGroup">
+                        <a href="#" id="alertsDropdownBtn" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: white; font-size: 20px; text-decoration: none; position: relative;">
+                            🔔 
+                            <span id="alertBadge" class="badge bg-danger rounded-pill" style="display: none; font-size: 10px; position: absolute; top: -5px; right: -10px;">0</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow" id="alertsList" style="width: 300px; max-height: 400px; overflow-y: auto;">
+                            <li><span class="dropdown-item text-muted">No new alerts</span></li>
+                        </ul>
+                    </div>
+
+                    <button type="button" id="navbarLoginBtn" class="btn" data-bs-toggle="modal" data-bs-target="#loginModal" style="border: 1px solid white; color: #7DF9FF;">
+                        Login
+                    </button>
+
+                    <div class="dropdown hidden" id="userDropdownGroup">
+                        <button class="btn btn-sm dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false" id="userDropdownBtn" style="color: white; font-size: 15px;">
+                            USERNAME
+                        </button>
+
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdownBtn">
+                            <li><a class="dropdown-item" href="#" id="SettingsBtn"> Settings </a></li>
+                            <li><hr></li>
+                            <li><a class="dropdown-item text-danger" href="#" id="logoutBtn"> Logout </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- Main body -->
+    <div id="container">
+        
+        <!-- Map Layer -->
+        <div id="map"></div>
+        <!-- Info / Incidents sidebar-->
+        <div id ="infobar">
+
+            <!-- Main View -->
+            <div id="infobar-header">
+                <h3 id="infobar-title" style="font-size: 20px;"> Recent Traffic Incidents </h3>
+                <button class="back-btn hidden" id="back-to-listview"> ← </button>
+            </div>
+            <div id="infobar-content">
+                <!-- Main List View showing incidents -->
+                <div id="incidents-list-view">
+                    <ul id="incidents"></ul>
+                </div>
+                <!-- Detail View, show incident details onclick -->
+                 <div id="incidents-detail-view" class="hidden">
+               
+                    <div>
+                        <dt>Type</dt>
+                        <dd id="detail-type"></dd>
+                    </div>
+                    <div>
+                        <dt>Incident message</dt>
+                        <dd id="detail-message"></dd>
+                    </div>
+                    <div>
+                        <dt>First seen</dt>
+                        <dd id="detail-first-seen"></dd>
+                    </div>
+                    <div>
+                        <dt>Last seen</dt>
+                        <dd id="detail-last-seen"></dd>
+                    </div>
+                    <div>
+                        <dt>Impact Level</dt>
+                        <dd id="detail-impact"></dd>
+                    </div>
+                    <div>
+                        <dt>Estimated Delay</dt>
+                        <dd id="detail-delay"></dd>
+                    </div>
+                    <div>
+                        <dt>Impacted roads</dt>
+                        <dd id="detail-roads"></dd>
+                    </div>
+                
+                 </div>
+
+            </div>
+
+            
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Login</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div id="email-group" class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input id="authEmail" class="form-control" />
+                    </div>
+
+                    <div id="name-group" class="mb-3 hidden">
+                        <label id="form-label-name" class="form-label">Name</label>
+                        <input id="authName" class="form-control" />
+                    </div>
+
+                    <div id="password-group" class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input id="authPassword" class="form-control" type="password" />
+                    </div>
+
+                    <div class="mt-2 small">
+                        <span id="toggleText"> Don't have an account? </span>
+                        <button type="button" id="toggleModeBtn" class="btn btn-link p-0 align-baseline"> Sign up </button>
+                    </div>
+
+                    <div id="authMsg" class="text-danger small"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="authBtn" class="btn btn-primary">Login</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Success Modal, pops up when user completes registration after email verification -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div id="modal-success-group" class="mb-3">
+                        <span id="modal-success-text"> Registration Successful! </span>
+                        <button type="button" id="successLoginBtn" class="btn btn-link p-0 align-baseline"> Log In </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Route Testing Modal -- TEST ONLY -->
+     <button id="openRoute" style="position:absolute; top:70px; left:12px; z-index:1000;">
+        Routing
+    </button>
+    <!-- Saved Routes Modal -- TEST ONLY -->
+    <button id="openSavedRoutes" style="position:absolute; top:110px; left:12px; z-index:1000;">
+        My Routes
+    </button>
+
+    <div id="routeModal" style="
+    display:none;
+    position:absolute;
+    top:120px; left:80px;
+    width:380px;
+    background:#fff;
+    border:1px solid #ccc;
+    border-radius:8px;
+    box-shadow:0 6px 18px rgba(0,0,0,.2);
+    z-index:2000;
+    ">
+        <div id="routeHeader" style="
+            cursor:move;
+            padding:10px 12px;
+            border-bottom:1px solid #eee;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            font-weight:600;
+        ">
+            Route Planner
+            <button id="closeRoute" style="border:none;background:transparent;font-size:18px;cursor:pointer;">×</button>
+        </div>
+
+        <div style="padding:12px;">
+            <!-- Updated to show star to save location as "Saved Place"-->
+            <div class="place-row">
+                <input id="fromInput" placeholder="From">
+                <button id="saveFromPlace" class="star-btn" type="button" title="Save Place">★</button>
+            </div>
+            <div class="place-row">
+                <input id="toInput" placeholder="To">
+                <button id="saveToPlace" class="star-btn" type="button" title="Save Place">★</button>
+            </div>
+            <div id="savePlacePanel" class="hidden savePlacePanel">
+                <div class="savePlaceTitle">Save place</div>
+                <input id="savePlaceNameInput" type="text" placeholder="e.g. Home, Work">
+               
+                <div id="savePlaceInlineMsg" class="hidden savePlaceInlineMsg"></div>
+
+                <div class="savePlaceActions">
+                    <button id="cancelSavePlace" type="button">Cancel</button>
+                    <button id="confirmSavePlace" type="button">Save</button>
+                </div>
+            </div>
+            <!-- <div style="display:flex; gap:6px; margin-bottom:8px;">
+                <input id="toInput" placeholder="To" style="flex:1; padding:8px;">
+                <button id="saveToPlace" type="button" style="padding:8px 10px;">★</button>
+            </div> -->
+
+            <button id="findRoute" style="width:100%; padding:8px;">Find routes</button>
+
+            <div id="routeResults" style="margin-top:10px; font-size:14px;"></div>
+        </div>
+    </div>
+
+    <div id="savedRoutesModal" style="
+        display:none;
+        position:absolute;
+        top:170px; left:80px;
+        width:340px;
+        background:#fff;
+        border:1px solid #ccc;
+        border-radius:8px;
+        box-shadow:0 6px 18px rgba(0,0,0,.2);
+        z-index:2000;
+        ">
+        <div id="savedRoutesHeader" style="
+            cursor:move;
+            padding:10px 12px;
+            border-bottom:1px solid #eee;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            font-weight:600;
+        ">
+            My Routes
+            <button id="closeSavedRoutes" style="border:none;background:transparent;font-size:18px;cursor:pointer;">×</button>
+        </div>
+
+        <div style="padding:12px;">
+            <div id="savedRoutesList" style="font-size:14px;"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    
+    <script>
+
+        // Import Supabase 
+        const { createClient } = window.supabase;
+        // Create a single supabase client for interacting with database
+        const SUPABASE_URL = "https://vwywaannhemxefrrqrtv.supabase.co";
+        const SUPABASE_API_KEY = "sb_publishable_FfuRkw4At-Nlko5mVXoGaQ_ib_jrEFr";
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_API_KEY);
+
+        // Map Parameters
+
+        let currentMarker = null;
+        let currentAoe = null;
+
+        const DEFAULT_CENTER = [1.3521, 103.8198];
+        const DEFAULT_ZOOM = 12;
+
+        const SINGAPORE_BOUNDS = L.latLngBounds(
+            [1.15, 103.6],
+            [1.50, 104.1]
+        );
+
+        // Display Singapore
+        const map = L.map('map', {
+            center: DEFAULT_CENTER,
+            zoom: DEFAULT_ZOOM,
+            minZoom: 11,
+            maxZoom: 18,
+            maxBounds: SINGAPORE_BOUNDS,
+            maxBoundsViscosity: 0.8
+        })
+
+        L.tileLayer(
+        "https://www.onemap.gov.sg/maps/tiles/Grey/{z}/{x}/{y}.png",
+        {
+            maxZoom: 18,
+            attribution: '&copy; OneMap'
+        }
+        ).addTo(map);
+
+        // Store incidents data, temporarily
+        let incidentsData = [];
+
+        // Retrieve all current incidents from LTA
+        async function getIncidents() {
+
+            // Check session
+            const session = (await supabaseClient.auth.getSession()).data.session;
+
+            const headers = {};
+            if (session) {
+                headers["Authorization"] = "Bearer " + session.access_token;
+            }
+
+            const response = await fetch("/api/incidents", { headers });
+            const data = await response.json();
+
+            // Console Log: Incident Response
+            console.log("incidents response", data)
+
+            incidentsData = data.incidents; 
+            if (data.source === "placeholder") {
+                document.getElementById("infobar-title").innerText = "API Key Missing. Placeholder Traffic Incidents";
+            }
+            
+            const list = document.getElementById("incidents");
+            list.innerHTML = "";
+
+            const roadNames = [
+                "PIE", "CTE", "AYE", "ECP", "KPE", "TPE", "SLE", "BKE", 
+                "Lornie Road", "Bukit Timah Road", "Nicoll Highway",
+                "Yio Chu Kang Road", "Upper Thomson Road"
+            ];
+
+
+            data.incidents.forEach((incident, index) => {
+
+                // FROM XGBoost Prediction
+                const predBand = incident.predicted_speed_band_tp15 || "N/A";
+                const statusColor = predBand < 4 ? "red": "green";
+                const currentBand = incident.current_speed_band || "N/A"
+                const affected_road_link = incident.matched_link_id || "N/A";
+                const affected_road_name = incident.matched_road_name || "N/A";
+                trafficStatus = "Free Flow"
+                if (currentBand >= 6) {
+                    trafficStatus = "Free Flow";
+                }
+                else if (currentBand >= 4) {
+                    trafficStatus = "Moderate Traffic";
+                }
+                else {
+                    trafficStatus = "Heavy Congestion";
+                }
+
+                // Create Incident List with Realtime road_link mapping and predictions
+                const li = document.createElement("li");
+                li.className = "incident-item"
+                li.style.cursor = "pointer";
+                li.style.marginBottom = "10px";
+                li.innerHTML = `<div class='incident-type'>${incident.Type}</div> <div class='incident-message'>${incident.Message}</div>
+                <div style="margin-top:6px; font-size:12px; color:#333;">
+                    <b>Current Speed: </b> <b> ${currentBand} </b><br>
+                    <b>XGBoost Prediction (T+15):</b> <b style="color: red;"> ${predBand} </b><br>
+                    <b>Impact Level:</b> <b style="color: red;""> ${trafficStatus}</b><br>
+                    <b>Impacted Road:</b> ${affected_road_name}
+                </div>
+                `
+                // Onclick 
+                li.onclick = () => {
+                    const lat = incident.Latitude;
+                    const lon = incident.Longitude;
+
+                    if (currentMarker) {
+                        map.removeLayer(currentMarker);
+                        currentMarker = null;
+                    }
+                    if (currentAoe) {
+                        map.removeLayer(currentAoe);
+                        currentAoe = null;
+                    }
+
+                    currentMarker = L.marker([lat, lon])
+                        .addTo(map)
+                        .bindPopup(incident.Message)
+                        .openPopup();
+
+                    radiusMeters = 300 * mockImpact;
+                    currentAoe = L.circle([lat, lon], {
+                        radius: radiusMeters,
+                        color: '#ef4444',
+                        weight: 2,
+                        fillColor: '#f97316',
+                        fillOpacity: 0.15
+                    }).addTo(map)
+
+                    map.fitBounds(currentAoe.getBounds(), {
+                        padding: [50, 50]
+                    });
+
+                    showIncidentDetail(index, { mockImpact, mockDelay, impactedRoads })
+                };
+                list.appendChild(li);
+            });
+
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
+        }
+
+        
+        // Toggle from detail view back to list view
+        const listView = document.getElementById("incidents-list-view");
+        const detailView = document.getElementById("incidents-detail-view");
+        const title = document.getElementById("infobar-title");
+        const backToListView = document.getElementById("back-to-listview");
+
+        backToListView.addEventListener("click", () => {
+            detailView.classList.add("hidden");
+            listView.classList.remove("hidden")
+            title.textContent = "Recent Traffic Incidents";
+            backToListView.classList.add("hidden")
+
+            if (currentMarker) {
+                map.removeLayer(currentMarker);
+                currentMarker = null;
+            }
+            if (currentAoe) {
+                map.removeLayer(currentAoe);
+                currentAoe = null;
+            }
+            map.setView(DEFAULT_CENTER, DEFAULT_ZOOM)
+        });
+
+        function showIncidentDetail(index, args) {
+            // Retrieve clicked incident index
+            const incident = incidentsData[index]; 
+
+            document.getElementById("detail-type").textContent = incident.Type;
+            document.getElementById("detail-message").textContent = incident.Message;
+            document.getElementById("detail-impact").textContent = args.mockImpact;
+            document.getElementById("detail-delay").textContent = args.mockDelay;
+            document.getElementById("detail-roads").textContent = args.impactedRoads;
+            document.getElementById("detail-first-seen").textContent = "20/1/2026 10:00am";
+            document.getElementById("detail-last-seen").textContent  = "20/1/2026 12:00pm";
+            // Switch to detail view
+            listView.classList.add("hidden");
+            detailView.classList.remove("hidden");
+            title.textContent = "Incident Details";
+            backToListView.classList.remove("hidden");
+
+
+        }
+        // Signup / Login script
+        let authMode = "login";
+        const modalTitle = document.querySelector("#loginModal .modal-title");
+        const submitBtn = document.getElementById("authBtn");
+        const toggleBtn = document.getElementById("toggleModeBtn");
+        const toggleText = document.getElementById("toggleText");
+        const authMsg = document.getElementById("authMsg");
+        const nameGroup = document.getElementById("name-group");
+        const authName = document.getElementById("authName")
+        const logoutBtn = document.getElementById("logoutBtn");
+
+        // Helper function to toggle the login/logout form 
+        function setMode(mode) {
+            authMode = mode;
+            authMsg.innerText = "";
+
+            if (mode === "login") {
+                modalTitle.innerText = "Login";
+                submitBtn.innerText = "Login";
+                toggleText.innerText = "Don't have an account?";
+                toggleBtn.innerText = "Sign up";
+                nameGroup.classList.add("hidden");
+                authName.value = "";
+
+            } else {
+                modalTitle.innerText = "Sign up";
+                submitBtn.innerText = "Create Account";
+                toggleText.innerText = "Already have an account?";
+                toggleBtn.innerText = "Log in"
+                nameGroup.classList.remove("hidden");
+            }
+        }
+        // If current auth mode is login, switch to signup, else vice versa
+        toggleBtn.addEventListener("click", () => {
+            setMode(authMode === "login" ? "signup" : "login");
+        })
+
+        // Handle User sign up and Login
+
+        // On registration success, display success modal
+        if (window.location.pathname === "/success") {
+            new bootstrap.Modal(document.getElementById("successModal")).show();
+            window.history.replaceState({}, "", "/");
+        }
+
+        // Handle registration / logging in
+        submitBtn.addEventListener("click", async () => {
+            const email = document.getElementById("authEmail").value.trim();
+            const username = document.getElementById("authName").value.trim();
+            const password = document.getElementById("authPassword").value;
+            if (authMode === "signup") {
+
+                authMsg.innerText = "Creating account..";
+                // Handle user registration, send verification email
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: { username: username },
+                        emailRedirectTo: 'http://127.0.0.1:8000/success',
+                    },
+                });
+
+                if (error) {
+                    authMsg.innerText = error.message;
+                    return;
+                }
+
+                authMsg.innerText = "Please check your email for verification."
+
+            } else {
+                // Handle login, perform authentication
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                })
+
+                if (error) {
+                    authMsg.innerText = error.message;
+                    return;
+                }
+
+                const { data:userRes } = await supabaseClient.auth.getUser();
+                const user = userRes.user;
+                const username = user?.user_metadata?.username || user?.email;
+                setNavbarLoggedIn(username);
+
+                await loadSavedRoutesFromServer();
+                await loadSavedPlacesFromServer();
+
+                // Close modal after successful login
+                const modal = bootstrap.Modal.getInstance(document.getElementById("loginModal"));
+                modal.hide();
+            }
+        })
+
+        // Cont. Handle login/logout
+        // Handle navbar, toggle "login" button to user profile dropdown view after login
+        function setNavbarLoggedOut() {
+            document.getElementById("navbarLoginBtn").classList.remove("hidden");
+            document.getElementById("userDropdownGroup").classList.add("hidden");
+        }
+
+        function setNavbarLoggedIn(username) {
+            document.getElementById("navbarLoginBtn").classList.add("hidden");
+            document.getElementById("userDropdownGroup").classList.remove("hidden");
+            document.getElementById("userDropdownBtn").innerText = username;
+        }
+
+        // Handle logout button
+        logoutBtn.addEventListener("click", async () => {
+            const { error } = await supabaseClient.auth.signOut()
+
+            if (error) {
+                return;
+            }
+
+            setNavbarLoggedOut();
+            savedRoutes = [];
+            savedPlaces = [];
+            renderSavedRoutes();
+        })
+
+        // Restore user session on page refresh
+        async function initSession() {
+            const { data } = await supabaseClient.auth.getSession();
+            const session = data.session;
+
+            // Load stuff from database after page refresh
+            await loadSavedRoutesFromServer();
+            await loadSavedPlacesFromServer();
+
+            // If no session, stay logged out
+            if (!session) {
+                setNavbarLoggedOut();
+                savedRoutes = []
+                renderSavedRoutes();
+                return;
+            }
+            // If logged in
+            const { data: userRes } = await supabaseClient.auth.getUser();
+            const user = userRes.user;
+            const username = user?.user_metadata?.username || user?.email;
+            setNavbarLoggedIn(username);
+
+        }
+
+        // ROUTE TESTING SECTION -- TO BE REMOVED LATER
+        const modal = document.getElementById("routeModal");
+        document.getElementById("openRoute").onclick = () => modal.style.display = "block";
+        document.getElementById("closeRoute").onclick = () => modal.style.display = "none";
+
+        // Stop Leaflet map drag when interacting with modal
+        modal.addEventListener("mousedown", e => e.stopPropagation());
+        modal.addEventListener("touchstart", e => e.stopPropagation());
+
+        // Drag logic (mouse)
+        const header = document.getElementById("routeHeader");
+        let dragging = false, offsetX = 0, offsetY = 0;
+
+        header.addEventListener("mousedown", (e) => {
+            dragging = true;
+            const rect = modal.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            e.preventDefault();
+        });
+
+        window.addEventListener("mousemove", (e) => {
+            if (!dragging) return;
+            modal.style.left = (e.clientX - offsetX) + "px";
+            modal.style.top  = (e.clientY - offsetY) + "px";
+        });
+
+        window.addEventListener("mouseup", () => dragging = false);
+
+        let fromSelected = null;
+        let toSelected = null;
+
+        function debounce(fn, ms=300){
+        let t;
+        return (...args) => { clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
+        }
+
+        async function fetchSuggestions(q){
+            const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+
+            if (!res.ok) {
+                const txt = await res.text();
+                console.error(`geocode error ${res.status}: ${txt}`);
+                return [];
+            }
+
+            const data = await res.json();
+            return Array.isArray(data.results) ? data.results : [];
+        }
+
+        // To recommend best matched locations based on users keywords
+        function attachAutocomplete(inputEl, onPick) {
+            const wrap = document.createElement("div");
+            wrap.style.position = "relative";
+            inputEl.parentNode.insertBefore(wrap, inputEl);
+            wrap.appendChild(inputEl);
+
+            // Style dropdown panel
+            const dd = document.createElement("div");
+            dd.style.position = "absolute";
+            dd.style.left = "0";
+            dd.style.right = "0";
+            dd.style.top = "100%";
+            dd.style.background = "#fff";
+            dd.style.border = "1px solid #ddd";
+            dd.style.borderTop = "none";
+            dd.style.zIndex = "3000";
+            dd.style.maxHeight = "200px";
+            dd.style.overflowY = "auto";
+            dd.style.display = "none";
+            wrap.appendChild(dd);
+
+            // To hide dropdown after option is selected
+            function hide() { dd.style.display = "none"; dd.innerHTML = ""; }
+
+            // Wait until user pauses typing before running the function
+            const run = debounce(async () => {
+                // User's typed input
+                const q = inputEl.value.trim();
+                
+                // Don't predict if word length is too short
+                if (q.length < 2) { hide(); return; }
+
+                // Show Saved Place in dropdown list recommendation
+                const matchedSavedPlaces = savedPlaces.filter(p =>
+                    p.place_name.toLowerCase().includes(q.toLowerCase()) ||
+                    p.label.toLowerCase().includes(q.toLowerCase())
+                );
+
+                // Retrieve geocoding suggestions
+                let results = [];
+                try {
+                results = await fetchSuggestions(q);
+                } catch (e) {
+                console.error("geocode failed", e);
+                hide();
+                return;
+                }
+
+                // Clear old dropdown
+                dd.innerHTML = "";
+
+                // Render the Saved Places
+                // It should appear before the OneMap geocoding results
+                if (matchedSavedPlaces.length) {
+                    const savedHeader = document.createElement("div");
+                    savedHeader.textContent = "Saved Places";
+                    savedHeader.style.padding = "6px 8px";
+                    savedHeader.style.fontSize = "12px";
+                    savedHeader.style.background = "#f8fafc";
+                    dd.appendChild(savedHeader);
+
+                    // Iterate through Saved Places and create clickable item for each
+                    matchedSavedPlaces.forEach((p) => {
+                        const item = document.createElement("div");
+                        // Use star icon.. as "favourites"
+                        item.textContent = `★ ${p.place_name} — ${p.label}`;
+                        item.style.padding = "8px";
+                        item.style.cursor = "pointer";
+                        // Highlight when user hover
+                        item.onmouseenter = () => item.style.background = "#f3f4f6";
+                        item.onmouseleave = () => item.style.background = "#fff";
+                        // Handle user click
+                        item.onclick = () => {
+                            // Fill input with label text
+                            inputEl.value = p.label;
+                            // 
+                            onPick({
+                                label: p.label,
+                                lat: p.lat,
+                                lon: p.lon,
+                                postal: null
+                            });
+                            hide();
+                        };
+                        dd.appendChild(item);
+                    })
+
+                }
+
+                if (!matchedSavedPlaces.length && !results.length) { 
+                    hide(); 
+                    return; 
+                }
+
+                // Handle OneMap Search Results here
+                // OneMap results become a clickable row
+                results.forEach((r) => {
+                const item = document.createElement("div");
+                item.textContent = r.postal ? `${r.label} (${r.postal})` : r.label;
+                item.style.padding = "8px";
+                item.style.cursor = "pointer";
+                item.onmouseenter = () => item.style.background = "#f3f4f6";
+                item.onmouseleave = () => item.style.background = "#fff";
+                item.onclick = () => {
+                    inputEl.value = r.label;
+                    onPick(r);       
+                    hide();
+                };
+                dd.appendChild(item);
+                });
+
+                // Show the dropdown
+                dd.style.display = "block";
+            }, 300);
+
+            
+            // When user starts typing call the debounced autocomplete function
+            // When input loses focus hide the dropdown
+            inputEl.addEventListener("input", run);
+            inputEl.addEventListener("blur", () => setTimeout(hide, 150));
+            }
+
+            // Attach autocomplete to fromInput
+            // and ToInput, to be used in routing
+            attachAutocomplete(document.getElementById("fromInput"), (r) => {
+            fromSelected = r;  // {label, postal, lat, lon}
+            console.log("fromSelected", fromSelected);
+            });
+
+            attachAutocomplete(document.getElementById("toInput"), (r) => {
+            toSelected = r;
+            console.log("toSelected", toSelected);
+        });
+
+
+        let routeLines = [];
+        let selectedRouteIndex = 0;
+        let savedRouteLayer = null
+
+        function clearRoutes() {
+        routeLines.forEach(l => map.removeLayer(l));
+        routeLines = [];
+
+        if (savedRouteLayer) {
+            map.removeLayer(savedRouteLayer);
+            savedRouteLayer = null;
+        }
+        }
+
+        function highlightRoute(idx) {
+            selectedRouteIndex = idx;
+            // If a saved route is active, remvove it
+            if (savedRouteLayer) {
+                map.removeLayer(savedRouteLayer);
+                savedRouteLayer = null;
+            }
+
+            routeLines.forEach((group, i) => {
+                if (!map.hasLayer(group)) {
+                    group.addTo(map);
+                }
+                const isSelected = (i === idx);
+                group.setStyle({
+                    weight: isSelected ? 7 : 4,
+                    opacity: isSelected ? 0.95 : 0.55
+                });
+            });
+        }
+
+        document.getElementById("findRoute").addEventListener("click", async () => {
+        if (!fromSelected || !toSelected) {
+            document.getElementById("routeResults").innerText = "Pick a From and To from the dropdown.";
+            return;
+        ;
+        }
+
+        document.getElementById("routeResults").innerText = "Routing...";
+        clearRoutes();
+
+        const url = `/api/route?fromLat=${fromSelected.lat}&fromLon=${fromSelected.lon}&toLat=${toSelected.lat}&toLon=${toSelected.lon}&k=3`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const routes = data.routes || [];
+        if (!routes.length) {
+            document.getElementById("routeResults").innerText = "No route found.";
+            return;
+        }
+
+        // draw
+        routes.forEach((r, i) => {
+            const coords = r.coords;
+            const segmentMatches = r.match_info.segment_matches; // Grab the new array from Python
+            const segments = [];
+
+            for (let j = 0; j < coords.length - 1; j++) {
+                const matchData = segmentMatches[j];
+
+                if (matchData) {
+                    
+                    // Mocking the Baseline Prediction (Persistence Model) for the demo
+                    const currentBand = matchData.pred_band;
+                    if (!currentBand) {
+                        const segmentLine = L.polyline([coords[j], coords[j+1]], {
+                        color: "#94a3b8",
+                        weight: 4,
+                        opacity: 0.6,
+                        dashArray: "5, 10"
+                    });
+                    segments.push(segmentLine);
+                    continue;
+                    }
+                    
+                    let lineColor = "#22c55e"; // Green (Band 4)
+                    let trafficStatus = "Free Flow";
+                    if (currentBand >= 6) {
+                        lineColor = "#22c55e";
+                        trafficStatus = "Free Flow";
+                    }
+                    else if (currentBand >= 4) {
+                        lineColor = "#eab308";
+                        trafficStatus = "Moderate Traffic";
+                    }
+                    else {
+                        lineColor = "#ef4444";
+                        trafficStatus = "Heavy Congestion";
+                    }
+
+                    // Draw the LTA matched segment thicker and colored
+                    const segmentLine = L.polyline([coords[j], coords[j+1]], {
+                        color: lineColor,
+                        weight: 7,
+                        opacity: 1.0
+                    });
+
+                    // Build the Interactive Popup
+                    const roadName = matchData.road_name || "LTA Road";
+                    const currentSpeedBand = matchData.current_band || "N/A";
+                    const popupHTML = `
+                        <div style="font-family: Arial; font-size: 13px;">
+                            <strong style="font-size: 15px;">${roadName}</strong><br>
+                            <span style="color: #666;">Link ID: ${matchData.link_id}</span><br>
+                            <hr style="margin: 6px 0;">
+                            <b>Current Traffic:</b> Speed Band ${currentSpeedBand}<br>
+                            <b>XGBoost Prediction (t+15):</b><br>
+                            Speed Band: <b>${currentBand}</b> (${trafficStatus})
+                        </div>
+                    `;
+                    
+                    segmentLine.bindPopup(popupHTML);
+                    segments.push(segmentLine);
+
+                } else {
+                    // Roads that do not match LTA Road Links. Use thin gray lines.
+                    const segmentLine = L.polyline([coords[j], coords[j+1]], {
+                        color: "#94a3b8", // Slate Grey
+                        weight: 4,
+                        opacity: 0.6,
+                        dashArray: "5, 10" // Make it a dashed line to indicate no data
+                    });
+                    segments.push(segmentLine);
+                }
+            }
+
+            const routeGroup = L.featureGroup(segments).addTo(map);
+            routeLines.push(routeGroup);
+        });
+
+        highlightRoute(0);
+        map.fitBounds(routeLines[0].getBounds(), { padding: [40, 40] });
+
+        // basic route list
+        const resultsContainer = document.getElementById("routeResults");
+        resultsContainer.innerHTML = "";
+        routes.forEach((r, i) => {
+            // New design, use list instead
+            const card = document.createElement("div");
+            card.style.border = "1px solid #ddd";
+            card.style.padding = "8px";
+            card.style.marginBottom = "6px";
+            card.style.borderRadius = "6px";
+
+            const coverage = Math.round((r.match_info.coverage_ratio || 0) * 100);
+            const distance = Math.round(r.match_info.total_route_len_m / 1000 *10) / 10;
+
+            card.innerHTML = `
+                <b>Route ${i+1}</b><br>
+                Distance: ${distance} km<br>
+                Coverage: ${coverage}%<br>
+                <button class="viewRoute btn btn-sm btn-outline-primary mt-2">View</button>
+                <button class="saveRoute btn btn-sm btn-outline-success mt-2">Save</button>
+            `;
+            card.querySelector(".viewRoute").onclick = () => highlightRoute(i);
+            card.querySelector(".saveRoute").onclick = () => saveRoute(r);
+            resultsContainer.appendChild(card);
+        });
+        });
+
+        let savedRoutes = [];
+        // SAVED ROUTES SECTION 
+        async function saveRoute(route) {
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) {
+                alert("Please log in first.");
+                return;
+            }
+
+            const linkIds = [];
+            if (route.match_info && route.match_info.matched_links) {
+                route.match_info.matched_links.forEach(link => {
+                    if (link && link.link_id) linkIds.push(link.link_id);
+                });
+            }
+
+            const body = {
+                route_name: `${fromSelected ? fromSelected.label : "Start"} to ${toSelected ? toSelected.label : "Destination"}`,
+                from_label: fromSelected ? fromSelected.label : "Unknown start",
+                to_label: toSelected ? toSelected.label : "Unknown destination",
+                coords_json: route.coords,
+                distance_m: route.match_info?.total_route_len_m || null,
+                link_ids: linkIds
+            };
+
+            const res = await fetch("/api/habit-routes", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + session.access_token
+                },
+                body: JSON.stringify(body)
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                console.error(data);
+                alert("Failed to save route.");
+                return;
+            }
+
+            alert("Habit route saved.");
+            await loadSavedRoutesFromServer();
+
+
+            // savedRoutes.push({
+            //     from: fromSelected ? fromSelected.label : "Unknown start",
+            //     to: toSelected ? toSelected.label : "Unknown destination",
+            //     coords: route.coords,
+            //     match_info: route.match_info,
+            //     timestamp: Date.now()
+            // })
+            // alert("Route Saved!")
+        }
+
+        const savedRoutesModal = document.getElementById("savedRoutesModal");
+        document.getElementById("openSavedRoutes").onclick = async () => {
+            // Render updated saved routes before opening
+            await loadSavedRoutesFromServer();
+            savedRoutesModal.style.display = "block";
+        };
+        document.getElementById("closeSavedRoutes").onclick = () => {
+            savedRoutesModal.style.display = "none";
+        };
+
+        savedRoutesModal.addEventListener("mousedown", e => e.stopPropagation());
+        savedRoutesModal.addEventListener("touchstart", e => e.stopPropagation());
+
+        const savedHeader = document.getElementById("savedRoutesHeader");
+        let draggingSaved = false, savedOffsetX = 0, savedOffsetY = 0;
+
+        savedHeader.addEventListener("mousedown", (e) => {
+            draggingSaved = true;
+            const rect = savedRoutesModal.getBoundingClientRect();
+            savedOffsetX = e.clientX - rect.left;
+            savedOffsetY = e.clientY - rect.top;
+            e.preventDefault();
+        });
+
+        window.addEventListener("mousemove", (e) => {
+            if (!draggingSaved) return;
+            savedRoutesModal.style.left = (e.clientX - savedOffsetX) + "px";
+            savedRoutesModal.style.top = (e.clientY - savedOffsetY) + "px";
+        });
+
+        window.addEventListener("mouseup", () => draggingSaved = false);
+
+        // Helper Function - Update Route Settings
+        async function updateRouteSettings(routeId, isEnabled, start, end) {
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) return alert("Session expired. Please login again.");
+
+            const res = await fetch(`/api/habit-routes/${routeId}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + session.access_token
+                },
+                body: JSON.stringify({
+                    alert_enabled: isEnabled,
+                    alert_start_time: start,
+                    alert_end_time: end
+                })
+            });
+            if (res.ok) {
+            
+                // Refresh local data to keep everything in sync
+                await loadSavedRoutesFromServer();
+            } else {
+                const err = await res.json();
+            }
+        }
+
+        // Show list of saved routes in modal
+        async function renderSavedRoutes() {
+            const container = document.getElementById("savedRoutesList");
+            container.innerHTML = "";
+
+            // Handle 0 saved routes
+            if (!savedRoutes.length) {
+                container.innerHTML = "<div style='color:#666;'>No saved routes yet.</div>";
+                return;
+            }
+            
+            savedRoutes.forEach((route, i) => {
+                const card = document.createElement("div");
+                card.style.border = "1px solid #ddd";
+                card.style.padding = "8px";
+                card.style.marginBottom = "8px";
+                card.style.borderRadius = "6px";
+
+                // const coverage = Math.round((route.match_info.coverage_ratio || 0) * 100);
+                // const distance = Math.round((route.match_info.total_route_len_m || 0) / 1000 * 10) / 10;
+
+                // // --- NEW: Scan for delayed roads ---
+                // let delayedRoads = [];
+                // if (route.match_info && route.match_info.segment_matches) {
+                //     route.match_info.segment_matches.forEach(m => {
+                //         // If the prediction is Band 1, 2, or 3 (Congested)
+                //         if (m && m.pred_band && m.pred_band < 4) {
+                //             let name = m.road_name || "LTA Road";
+                //             if (!delayedRoads.includes(name)) delayedRoads.push(name);
+                //         }
+                //     });
+                // }
+                // let warningHTML = "";
+                // if (delayedRoads.length > 0) {
+                //     warningHTML = `<div style="color: #ef4444; font-size: 12px; margin-top: 4px; line-height: 1.2; word-wrap:break-word; white-space: normal;">
+                //         <b>Delays predicted on:</b> ${delayedRoads.slice(0, 3).join(", ")}${delayedRoads.length > 3 ? "..." : ""}
+                //     </div>`;
+                // } else {
+                //     warningHTML = `<div style="color: #22c55e; font-size: 12px; margin-top: 4px;"> Route looks clear</div>`;
+                // }
+                card.innerHTML = `
+                    <b>${route.from} → ${route.to}</b><br>
+                    <div style="color:#64748b; font-size:12px; margin-top:2px;">${(route.distance_m / 1000).toFixed(1)} km</div>
+
+                    <div class="mt-2 d-flex gap-2">
+                        <button class="loadSavedRoute btn btn-sm btn-outline-primary">Load</button>
+                        <button class="settingsRoute btn btn-sm btn-outline-secondary">Alerts</button>
+                        <button class="deleteSavedRoute btn btn-sm btn-outline-danger ms-auto">Delete</button>
+                    </div>
+
+                    <div class="route-settings-panel hidden" style="margin-top: 10px; border-radius: 8px;">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input alert-toggle" type="checkbox" ${route.alert_enabled ? 'checked' : ''}>
+                            <label class="form-check-label settings-label">Monitor Traffic</label>
+                        </div>
+                        
+                        <div class="window-row">
+                            <span class="settings-label">Window:</span>
+                            <input type="time" class="form-control alert-start-input alert-time-input" value="${route.alert_start_time || '07:30'}">
+                            <span class="settings-label">to</span>
+                            <input type="time" class="form-control alert-end-input alert-time-input" value="${route.alert_end_time || '09:00'}">
+                        </div>
+
+                        <button class="saveSettingsBtn btn btn-sm btn-success w-100">Save Settings</button>
+                    </div>
+                `;
+                // Toggle logic
+                const settingsBtn = card.querySelector('.settingsRoute')
+                const settingsPanel = card.querySelector('.route-settings-panel');
+
+                settingsBtn.onclick = () => {
+                    settingsPanel.classList.toggle('hidden');
+                };
+                
+                // Save logic
+                card.querySelector('.saveSettingsBtn').onclick = async () => {
+                    const isEnabled = card.querySelector('.alert-toggle').checked;
+                    const startTime = card.querySelector('.alert-start-input').value;
+                    const endTime = card.querySelector('.alert-end-input').value;
+
+                    await updateRouteSettings(route.id, isEnabled, startTime, endTime)
+                }
+
+                card.querySelector(".loadSavedRoute").onclick = () => loadSavedRoute(i);
+                card.querySelector(".deleteSavedRoute").onclick = () => deleteSavedRoute(i);
+
+                container.appendChild(card);
+            });
+        }
+
+        // Rebuild route from Saved Routes coordinates
+        async function loadSavedRoute(i) {
+            const routeToDraw = savedRoutes[i];
+            if (!routeToDraw || !routeToDraw.coords || routeToDraw.coords.length < 2) 
+                return;
+
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) {
+                alert("Please log in first")
+                return;
+            }
+
+            // Call backend to retrieve the new calculated match_info
+            const res = await fetch("/api/habit-routes/analyze", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + session.access_token
+                },
+                body: JSON.stringify({
+                    coords_json: routeToDraw.coords
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                console.error(data);
+                alert("Failed to analyze saved route.");
+                return;
+            }
+
+            routeLines.forEach(l => map.removeLayer(l));
+
+            // Clear any previously drawn saved route
+            if (savedRouteLayer) {
+                map.removeLayer(savedRouteLayer);
+            }
+
+            const coords = data.coords || routeToDraw.coords;
+            const matchInfo = data.match_info || {};
+            const segmentMatches = matchInfo.segment_matches || [];
+            const segments = [];
+
+            for (let j = 0; j < coords.length - 1; j++) {
+                const matchData = segmentMatches[j]
+
+                if (matchData) {
+                    let lineColor = "#3b82f6";
+                    let speedBandText = "N/A";
+                    let trafficStatus = "Collecting Data...";
+                    const currentRealBand = matchData.current_band || "N/A"; // Gets current band
+
+                    if (matchData.pred_band) {
+                        speedBandText = matchData.pred_band;
+                        if (matchData.pred_band >= 6) { lineColor = "#22c55e"; trafficStatus = "Free Flowing"; }
+                        else if (matchData.pred_band >= 4) { lineColor = "#eab308"; trafficStatus = "Moderate Traffic"; }
+                        else { lineColor = "#ef4444"; trafficStatus = "Heavy Congestion"; }
+                    }
+
+                    const segmentLine = L.polyline([coords[j], coords[j+1]], {
+                        color: lineColor, weight: 7, opacity: 1.0
+                    });
+
+                    // Popups include both current and predicted bands
+                    segmentLine.bindPopup(`
+                        <div style="font-family: Arial; font-size: 13px;">
+                            <strong style="font-size: 15px;">${matchData.road_name || "LTA Road"}</strong><br>
+                            <span style="color: #666;">Link ID: ${matchData.link_id}</span><br>
+                            <hr style="margin: 6px 0;">
+                            <b>Current Traffic:</b> Speed Band ${currentRealBand}<br>
+                            <b>XGBoost Prediction (t+15):</b><br>
+                            Speed Band: <b>${speedBandText}</b> (${trafficStatus})
+                        </div>
+                    `);
+                    segments.push(segmentLine);
+                } else {
+                    const segmentLine = L.polyline([coords[j], coords[j+1]], {
+                        color: "#94a3b8", weight: 4, opacity: 0.6, dashArray: "5, 10"
+                    });
+                    segments.push(segmentLine);
+                }
+            }
+
+            // Save to dedicated route layer
+            savedRouteLayer = L.featureGroup(segments).addTo(map);
+            map.fitBounds(savedRouteLayer.getBounds(), { padding: [40, 40] });
+        }
+
+        async function loadSavedRoutesFromServer() {
+            const session = (await supabaseClient.auth.getSession()).data.session;
+
+            if (!session) {
+                savedRoutes = [];
+                renderSavedRoutes();
+                return;
+            }
+
+            const res = await fetch("/api/habit-routes", {
+                headers: {
+                    "Authorization": "Bearer " + session.access_token
+                }
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                console.error(data);
+                savedRoutes = [];
+                renderSavedRoutes();
+                return;
+            }
+
+            savedRoutes = (data.routes || []).map(r => ({
+                id: r.id,
+                from: r.from_label || "Unknown start",
+                to: r.to_label || "Unknown destination",
+                coords: r.coords_json || [],
+                distance_m: r.distance_m,
+                link_ids: r.link_ids || [],
+                alert_enabled: r.alert_enabled,
+                alert_start_time: r.alert_start_time,
+                alert_end_time: r.alert_end_time,
+                // match_info: r.match_info_json || {segment_matches: [], coverage_ratio: 0, total_route_len_m: 0 },
+                timestamp: r.created_at
+            }));
+            
+            renderSavedRoutes();
+            
+        }
+
+        async function deleteSavedRoute(i) {
+            const route = savedRoutes[i];
+            if (!route || !route.id) return;
+
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) {
+                alert("Please log in first.");
+                return;
+            }
+
+            const res = await fetch(`/api/habit-routes/${route.id}`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": "Bearer " + session.access_token
+                }
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                console.error(data);
+                alert("Failed to delete route.");
+                return;
+            }
+
+            await loadSavedRoutesFromServer();
+        }
+        // END SAVED ROUTES SECTION 
+
+        // SAVED PLACE SECTION
+        const savePlacePanel = document.getElementById("savePlacePanel");
+        const savePlaceNameInput = document.getElementById("savePlaceNameInput");
+        const confirmSavePlace = document.getElementById("confirmSavePlace");
+        const cancelSavePlace = document.getElementById("cancelSavePlace");
+
+        let pendingSavedPlace = null;
+
+        // Open Save Place Panel for user to input name
+        function openSavePlacePanel(selectedPlace) {
+            if (!selectedPlace) {
+                alert("Please select a place first.");
+                return;
+            }
+
+            pendingSavedPlace = selectedPlace;
+            savePlaceNameInput.value = "";
+            hideSavePlaceInlineMessage();
+            savePlacePanel.classList.remove("hidden");
+            savePlaceNameInput.focus();
+        }
+    
+        // Close panel
+        function closeSavePlacePanel() {
+            pendingSavedPlace = null;
+            savePlaceNameInput.value = "";
+            hideSavePlaceInlineMessage();
+            savePlacePanel.classList.add("hidden");
+        }
+        
+        // Handle panel opening
+        document.getElementById("saveFromPlace").onclick = () => {
+            openSavePlacePanel(fromSelected);
+        };
+        document.getElementById("saveToPlace").onclick = () => {
+            openSavePlacePanel(toSelected);
+        };
+
+
+        let savedPlace = [];
+
+        // Call backend API to retrieve Saved Places
+        async function loadSavedPlacesFromServer() {
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) {
+                savedPlaces = [];
+                return;
+            }
+
+            const res = await fetch("/api/saved-places", {
+                headers: {
+                    "Authorization": "Bearer " + session.access_token
+                }
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                console.error(data);
+                savedPlace = [];
+                return;
+            }
+
+            savedPlaces = (data.places || []).map(p => ({
+                id: p.id,
+                place_name: p.place_name,
+                label: p.label,
+                lat: p.lat,
+                lon: p.lon
+            }))
+        }
+
+        // Call backend to create Saved Place
+        async function createSavedPlace(selectedPlace, placeName) {
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) {
+                alert("Please log in first.");
+                return false;
+            }
+
+            if (!selectedPlace) {
+                showSavePlaceInlineMessage("Please select place", true);
+                return false;
+            }
+            // Enable users to enter a name
+            // const placeName = prompt("Save this place as (e.g. Home, Work):");
+            
+
+            if (!placeName || !placeName.trim()) {
+                showSavePlaceInlineMessage("Please enter a place name.", true);
+                return false;
+            }
+
+            const body = {
+                place_name: placeName.trim(),
+                label: selectedPlace.label,
+                lat: selectedPlace.lat,
+                lon: selectedPlace.lon
+            };
+
+            // Call backend 
+            const res = await fetch("/api/saved-places", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + session.access_token
+                },
+                body: JSON.stringify(body)
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                console.error(data);
+                showSavePlaceInlineMessage("Failed to save place.", true);
+                return false;
+            }
+
+            // Load Saved Places 
+            showSavePlaceInlineMessage("Place saved.");
+
+            await loadSavedPlacesFromServer();
+            alert("Placed Saved.");
+
+            return true;
+
+        }
+
+        cancelSavePlace.onclick = () => {
+            closeSavePlacePanel();
+        };
+
+        // Handle Confirm Save Place  from Panel
+        confirmSavePlace.onclick = async () => {
+            console.log("Save button clicked");
+            const placeName = savePlaceNameInput.value.trim();
+            console.log("placeName =", placeName);
+            console.log("pendingSavedPlace =", pendingSavedPlace);
+            if (!pendingSavedPlace) {
+                alert("No place selected."); // to replace with inline error msg
+                return;
+            }
+            const created = await createSavedPlace(pendingSavedPlace, placeName);
+            console.log("created =", created);
+            if (created) {
+                // Set short delay
+                setTimeout(() => {
+                    closeSavePlacePanel();
+                }, 900);
+            }
+        };
+
+        // Handle success/error messages inline
+        const savePlaceInlineMsg = document.getElementById("savePlaceInlineMsg");
+        function showSavePlaceInlineMessage(text, isError = false) {
+            savePlaceInlineMsg.textContent = text;
+            savePlaceInlineMsg.classList.remove("hidden", "success", "error");
+            savePlaceInlineMsg.classList.add(isError ? "error" : "success");
+        }
+
+        function hideSavePlaceInlineMessage() {
+            savePlaceInlineMsg.textContent = "";
+            savePlaceInlineMsg.classList.add("hidden");
+            savePlaceInlineMsg.classList.remove("success", "error");
+        }
+
+        // Delete Saved Places
+        async function deleteSavedPlace(placeId) {
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) {
+                alert("Please log in first.");
+                return;
+            }
+
+            const res = await fetch(`/api/saved-places/${placeId}`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": "Bearer " + session.access_token
+                }
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                console.error(data);
+                alert("Failed to delete place.");
+                return;
+            }
+
+            await loadSavedPlacesFromServer();
+        }
+
+        async function checkAlerts() {
+            const sessionData = await supabaseClient.auth.getSession();
+            const session = sessionData.data.session;
+            if (!session) return;
+
+            try {
+                const res = await fetch("/api/my-alerts", {
+                    headers: { "Authorization": "Bearer " + session.access_token }
+                });
+                
+                const alerts = await res.json();
+                const badge = document.getElementById("alertBadge");
+                const list = document.getElementById("alertsList");
+
+                if (alerts.length > 0) {
+                    // Show the red badge
+                    badge.innerText = alerts.length;
+                    badge.style.display = "inline-block";
+                    
+                    // Populate the dropdown
+                    list.innerHTML = "";
+                    alerts.forEach(alert => {
+                        list.innerHTML += `
+                            <li>
+                                <div class="dropdown-item" style="white-space: normal; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+                                    <strong>Traffic Alert!</strong><br>
+                                    <span style="font-size: 12px; color: #666;">Route ID: ${alert.route_id} is facing delays.</span>
+                                    <button class="btn btn-sm btn-outline-secondary w-100 mt-2" onclick="dismissAlert(${alert.id})">Dismiss</button>
+                                </div>
+                            </li>
+                        `;
+                    });
+                } else {
+                    badge.style.display = "none";
+                    list.innerHTML = `<li><span class="dropdown-item text-muted">No new alerts</span></li>`;
+                }
+            } catch (e) {
+                console.error("Failed to fetch alerts:", e);
+            }
+        }
+
+        // Check for alerts immediately on load
+
+
+
+        async function init() {
+            await initSession();  
+            await getIncidents();  
+            checkAlerts();
+
+        }
+
+        
+
+        init();
+    </script>
+
+</body>
+</html>
